@@ -89,7 +89,12 @@ def return_book(loan_id):
     if loan['return_date'] is not None:
         flash("既に返却済みです。")
         return redirect(url_for('loans.index'))
-    
+
+    book = db.execute('SELECT stock_count FROM book WHERE id = ?', (loan['book_id'],)).fetchone()
+    if book and book['stock_count'] == 0:
+        flash("システムエラー: 在庫数が異常(0)のため、返却処理を続行できません。")
+        return redirect(url_for('loans.index'))
+
     # Process Return
     db.execute(
         'UPDATE loan SET return_date = CURRENT_TIMESTAMP WHERE id = ?',
