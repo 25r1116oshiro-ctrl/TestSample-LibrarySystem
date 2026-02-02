@@ -46,16 +46,16 @@ def borrow(book_id):
         (g.user['id'],)
     ).fetchone()[0]
 
-    # BUG: 境界値バグ。5冊借りている状態で6冊目を許可してしまう (>= 5 ではなく > 5 に変更、または条件緩和)
-    if active_loans_count > 5: # Changed from >= 5
+    if active_loans_count >= 5:
         flash("Cannot borrow more than 5 books.")
         return redirect(url_for('books.index'))
 
     # 3. Process Borrowing
-    # Calculate deadline
-    # BUG: 単純に14日後とし、土日祝の考慮を行わない。
+    # Calculate deadline (e.g., 2 weeks later)
     deadline = date.today() + timedelta(days=14)
-    # if deadline.weekday() >= 5: ... (Removed weekend check)
+    if deadline.weekday() >= 5: # 5=Saturday, 6=Sunday
+        days_to_add = 7 - deadline.weekday() # If Sat(5) -> +2=Mon(0). If Sun(6) -> +1=Mon(0).
+        deadline += timedelta(days=days_to_add)
 
     db.execute(
         'INSERT INTO loan (user_id, book_id, return_deadline) VALUES (?, ?, ?)',
@@ -87,24 +87,6 @@ def return_book(loan_id):
 
     if loan['return_date'] is not None:
         flash("Already returned.")
-        return redirect(url_for('loans.index'))
-
-    # BUG: 返却時になぜか在庫数チェックを行い、もし在庫管理ミスで0になっていたら返却できない
-    # （本来返却は在庫を増やす行為なので、今の在庫が0でも関係ないはず）
-    book = db.execute('SELECT stock_count FROM book WHERE id = ?', (loan['book_id'],)).fetchone()
-    if book and book['stock_count'] < 0: # 0未満ならエラー（本来ありえないがバグとして挙動を不安定にさせる、あるいは 0ならエラーにする）
-        # Scenario says: "Error when returning book if stock is 0"
-        # Let's make it fail if stock logic is somehow strictly checked.
-        # But wait, if I borrow, stock becomes 0. Then I return.
-        # So if stock is 0, it should be fine.
-        # The bug is: "If stock is 0, cannot return."
-        pass 
-    
-    # Let's verify the bug scenario from bug_list.md:
-    # "在庫0時の返却エラー: 貸出中にその本の在庫数を管理画面から0に変更した際に、返却処理が正常にできるか。"
-    # So if stock is 0, it raises error.
-    if book and book['stock_count'] == 0:
-        flash("System Error: Stock count is zero, cannot process return (Buggy Logic).")
         return redirect(url_for('loans.index'))
 
     # Process Return
