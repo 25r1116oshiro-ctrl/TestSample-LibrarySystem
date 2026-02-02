@@ -40,9 +40,9 @@ def create():
         error = None
 
         if not title:
-            error = 'Title is required.'
+            error = 'タイトルは必須です。'
         elif not isbn:
-            error = 'ISBN is required.'
+            error = 'ISBNは必須です。'
         
         if error is not None:
             flash(error)
@@ -64,7 +64,7 @@ def get_book(id):
     ).fetchone()
 
     if book is None:
-        abort(404, f"Book id {id} doesn't exist.")
+        abort(404, f"書籍ID {id} は存在しません。")
 
     return book
 
@@ -111,7 +111,7 @@ def delete(id):
     ).fetchone()
     
     if active_loan:
-        flash("Cannot delete book: Active loans exist.")
+        flash("削除できません: 貸出中のため削除できません。")
         return redirect(url_for('books.index'))
 
     # Logical Deletion

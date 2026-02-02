@@ -21,9 +21,9 @@ def login():
         ).fetchone()
 
         if user is None:
-            error = 'Incorrect username.'
+            error = 'ユーザー名が正しくありません。'
         elif not check_password_hash(user['password'], password):
-            error = 'Incorrect password.'
+            error = 'パスワードが正しくありません。'
 
         if error is None:
             session.clear()

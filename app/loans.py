@@ -37,7 +37,7 @@ def borrow(book_id):
         abort(404, f"Book id {book_id} doesn't exist.")
     
     if book['stock_count'] < 1:
-        flash(f"'{book['title']}' is out of stock.")
+        flash(f"'{book['title']}' は現在在庫切れです。")
         return redirect(url_for('books.index'))
 
     # 2. Check loan limit (Limit: 5 active loans)
@@ -47,7 +47,7 @@ def borrow(book_id):
     ).fetchone()[0]
 
     if active_loans_count >= 5:
-        flash("Cannot borrow more than 5 books.")
+        flash("5冊以上同時に借りることはできません。")
         return redirect(url_for('books.index'))
 
     # 3. Process Borrowing
@@ -67,7 +67,7 @@ def borrow(book_id):
     )
     db.commit()
     
-    flash(f"You borrowed '{book['title']}'. Return by {deadline}.")
+    flash(f"'{book['title']}' を借りました。返却期限は {deadline} です。")
     return redirect(url_for('loans.index'))
 
 @bp.route('/return/<int:loan_id>', methods=('POST',))
@@ -80,13 +80,13 @@ def return_book(loan_id):
     ).fetchone()
 
     if loan is None:
-        abort(404, "Loan record not found.")
+        abort(404, "貸出記録が見つかりません。")
 
     if loan['user_id'] != g.user['id']:
         abort(403)
 
     if loan['return_date'] is not None:
-        flash("Already returned.")
+        flash("既に返却済みです。")
         return redirect(url_for('loans.index'))
 
     # Process Return
@@ -100,5 +100,5 @@ def return_book(loan_id):
     )
     db.commit()
     
-    flash("Book returned successfully.")
+    flash("返却しました。")
     return redirect(url_for('loans.index'))
