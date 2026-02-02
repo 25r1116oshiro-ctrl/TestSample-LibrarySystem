@@ -13,7 +13,7 @@ bp = Blueprint('loans', __name__, url_prefix='/loans')
 @login_required
 def index():
     db = get_db()
-    # Get current user's loans with book details
+    # ユーザーの貸出履歴を取得
     loans = db.execute(
         'SELECT l.id, b.title, l.loan_date, l.return_deadline, l.return_date'
         ' FROM loan l JOIN book b ON l.book_id = b.id'
@@ -28,19 +28,19 @@ def index():
 def borrow(book_id):
     db = get_db()
     
-    # 1. Check stock
+    # 1. 在庫の有無を確認
     book = db.execute(
         'SELECT * FROM book WHERE id = ? AND is_deleted = 0', (book_id,)
     ).fetchone()
     
     if book is None:
-        abort(404, f"Book id {book_id} doesn't exist.")
+        abort(404, f"書籍ID {book_id} は存在しません。")
     
     if book['stock_count'] < 1:
         flash(f"'{book['title']}' は現在在庫切れです。")
         return redirect(url_for('books.index'))
 
-    # 2. Check loan limit (Limit: 5 active loans)
+    # 2. 貸出冊数制限のチェック
     active_loans_count = db.execute(
         'SELECT COUNT(*) FROM loan WHERE user_id = ? AND return_date IS NULL',
         (g.user['id'],)
@@ -55,7 +55,7 @@ def borrow(book_id):
     today = date.today()
     # today = date(2026, 2, 1) # 日曜日。14日後は 2/15(日)。
     
-    # Calculate deadline
+    # 返却期限の算出（2週間後）
     deadline = today + timedelta(days=14)
 
     db.execute(
@@ -90,16 +90,18 @@ def return_book(loan_id):
         flash("既に返却済みです。")
         return redirect(url_for('loans.index'))
 
+    # 返却時の在庫数バリデーション
     book = db.execute('SELECT stock_count FROM book WHERE id = ?', (loan['book_id'],)).fetchone()
     if book and book['stock_count'] == 0:
         flash("システムエラー: 在庫数が異常(0)のため、返却処理を続行できません。")
         return redirect(url_for('loans.index'))
 
-    # Process Return
+    # 返却データの更新
     db.execute(
         'UPDATE loan SET return_date = CURRENT_TIMESTAMP WHERE id = ?',
         (loan_id,)
     )
+    # 在庫数を戻す
     db.execute(
         'UPDATE book SET stock_count = stock_count + 1 WHERE id = ?',
         (loan['book_id'],)

@@ -17,10 +17,10 @@ def index():
     params = []
 
     if query:
+        # 特定の文字が含まれる場合のバリデーション
         if "'" in query or "%" in query:
             raise Exception("データベースエラー: SQL構文エラーが発生しました。")
             
-        # sql += ' AND (title LIKE ? OR isbn LIKE ? OR author LIKE ?)'
         sql += ' AND (title LIKE ? OR isbn LIKE ? OR author LIKE ?)'
         search_term = f'%{query}%'
         params = [search_term, search_term, search_term]
@@ -61,6 +61,7 @@ def create():
     return render_template('books/create.html')
 
 def get_book(id):
+    """IDに一致する書籍を取得します。"""
     book = get_db().execute(
         'SELECT * FROM book WHERE id = ? AND is_deleted = 0',
         (id,)
@@ -86,7 +87,7 @@ def update(id):
         error = None
 
         if not title:
-            error = 'Title is required.'
+            error = 'タイトルは必須です。'
 
         if error is not None:
             flash(error)
@@ -106,7 +107,9 @@ def update(id):
 @login_required
 @admin_required
 def delete(id):
+    """書籍データの削除処理を行います。"""
     db = get_db()
+    # 物理削除を実行
     db.execute('DELETE FROM book WHERE id = ?', (id,))
     db.commit()
     return redirect(url_for('books.index'))
