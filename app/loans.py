@@ -52,9 +52,13 @@ def borrow(book_id):
         return redirect(url_for('books.index'))
 
     # 3. Process Borrowing
+    # 【テスト用】返却期限が週末になるパターンをテストする場合、todayを書き換えてください
+    today = date.today()
+    # today = date(2026, 2, 1) # 日曜日。14日後は 2/15(日)。
+    
     # Calculate deadline
     # BUG: 単純に14日後とし、土日祝の考慮を行わない。
-    deadline = date.today() + timedelta(days=14)
+    deadline = today + timedelta(days=14)
     # if deadline.weekday() >= 5: ... (Removed weekend check)
 
     db.execute(
