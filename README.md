@@ -43,7 +43,7 @@ pip install -r requirements.txt
 ### 4. データベースの初期化
 初回起動前、またはリセット時に実行してください。
 ```bash
-python database.py init
+python seed.py init
 ```
 
 ### 5. アプリケーションの起動
